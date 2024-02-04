@@ -4,7 +4,7 @@
 namespace  catalogue
 {
 
-void TransportCatalogue::AddRoute(std::string route_name, std::vector<std::string_view> stops){
+void TransportCatalogue::AddRoute(const std::string route_name, const std::vector<std::string_view> stops){
     std::vector<std::string_view>stops2;
     for(std::string_view stop:stops)
     {
@@ -17,7 +17,7 @@ void TransportCatalogue::AddRoute(std::string route_name, std::vector<std::strin
 }
 
 
-void TransportCatalogue::AddStop(std::string stop, Coordinates latlong)
+void TransportCatalogue::AddStop(const std::string stop, Coordinates latlong)
 {
     std::unordered_set<std::string_view>buses;
     //std::unordered_map<std::string, std::unordered_set<std::string_view>>buses_to_stop;
