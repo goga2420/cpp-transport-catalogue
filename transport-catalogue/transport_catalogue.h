@@ -39,8 +39,8 @@ public:
         std::vector<std::string_view> route_stops_;
     };
     
-    void AddRoute(const std::string route_name, const std::vector<std::string_view> stops);
-    void AddStop(const std::string stop, Coordinates latlong);
+    void AddRoute(const std::string& route_name, const std::vector<std::string_view>& stops);
+    void AddStop(const std::string& stop, Coordinates latlong);
     std::optional<const TransportCatalogue::Bus*> SearchRoute(std::string_view name) const;
     std::optional<const TransportCatalogue::Stop*> SearchStop(std::string_view name) const;
     std::optional<TransportCatalogue::Info> GetRouteInfo(std::string_view name) const ;
