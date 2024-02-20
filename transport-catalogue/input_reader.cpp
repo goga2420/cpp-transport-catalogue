@@ -1,8 +1,11 @@
+
+
+#include "input_reader.h"
+//#include "input_reader.h"
+
 #include <algorithm>
 #include <cassert>
 #include <iterator>
-#include "input_reader.h"
-
 
 namespace input
 {
@@ -27,6 +30,39 @@ Coordinates ParseCoordinates(std::string_view str) {
     
     return {lat, lng};
 }
+
+
+
+std::unordered_map<std::string_view, int> ParseStopLengths(std::string_view str)
+{
+    std::unordered_map<std::string_view, int> result;
+    
+    auto comma = str.find(',');
+    str = str.substr(comma+1, str.size());
+    comma = str.find(',');
+    str = str.substr(comma+2, str.size());
+    while(str.size()!=0)
+    {
+        auto to = str.find("to");
+        comma = str.find(',');
+        if(str.find(',') == std::string::npos)
+        {
+            auto len = str.substr(0, to-1);
+            auto stop = str.substr(to+3, str.size()-1);
+            result.insert({stop, std::stoi(std::string(len.substr(0, len.size()-1)))});
+            //str = str.substr(comma+2);
+            break;
+        }
+        auto len = str.substr(0, to-1);
+        auto stop = str.substr(to+3, comma-to-3);
+        result.insert({stop, std::stoi(std::string(len.substr(0, len.size()-1)))});
+        str = str.substr(comma+2);
+        
+    }
+    
+    return result;
+}
+
 
 /**
  * Удаляет пробелы в начале и конце строки
@@ -115,8 +151,12 @@ void InputReader::ApplyCommands([[maybe_unused]] catalogue::TransportCatalogue& 
             Coordinates lat_long;
             lat_long = ParseCoordinates(commands_[i].description);
             
+            std::unordered_map<std::string_view, int> stop_lengths;
+            
+            stop_lengths = ParseStopLengths(commands_[i].description);
+            
             // Вызываем метод AddStop с полученными координатами
-            catalogue.AddStop(commands_[i].id, lat_long);
+            catalogue.AddStop(commands_[i].id, lat_long, stop_lengths);
         }
         else if(commands_[i].command == "Bus")
         {
@@ -140,9 +180,9 @@ void InputReader::ReadInputAndGetStats()
 {
     catalogue::TransportCatalogue catalogue;
     int base_request_count;
-//    std::ifstream inputFile("/Users/georgijzukov/Desktop/Transport_Catalogue V2/Transport_Catalogue V2/testInput.txt");
-//
-//    inputFile >> base_request_count >> std::ws;
+    std::ifstream inputFile("/Users/georgijzukov/Desktop/Transport_Catalogue V2/Transport_Catalogue V2/input2.txt");
+
+    //inputFile >> base_request_count >> std::ws;
     //код выше для проверки тестов с чтением из файла
     
     std::cin >> base_request_count >> std::ws;

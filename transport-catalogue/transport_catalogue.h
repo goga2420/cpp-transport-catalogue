@@ -22,6 +22,7 @@ public:
         int r;
         int u;
         double l;
+        int real_l;
     };
     
     struct BusesToStop{
@@ -40,7 +41,7 @@ public:
     };
     
     void AddRoute(const std::string& route_name, const std::vector<std::string_view>& stops);
-    void AddStop(const std::string& stop, Coordinates latlong);
+    void AddStop(const std::string& stop, Coordinates latlong, std::unordered_map<std::string_view, int> stop_lengths);
     std::optional<const TransportCatalogue::Bus*> SearchRoute(std::string_view name) const;
     std::optional<const TransportCatalogue::Stop*> SearchStop(std::string_view name) const;
     std::optional<TransportCatalogue::Info> GetRouteInfo(std::string_view name) const ;
@@ -51,5 +52,6 @@ private:
     std::deque<Stop> stops_;
     std::unordered_map<std::string_view, std::optional<const Bus*>> route_index;
     std::unordered_map<std::string_view, std::optional<const Stop*>> stop_index;
+    std::unordered_map<std::string, std::unordered_map<std::string, int>> stop_length;
 };
 }

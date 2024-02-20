@@ -9,7 +9,7 @@ void ParseAndPrintStat(const catalogue::TransportCatalogue& transport_catalogue,
         request = request.substr(4);
         if(auto bus = transport_catalogue.GetRouteInfo(request); bus.has_value())
         {
-            output <<"Bus "<< request << ": "<<bus->r<<" stops on route, "<<bus->u<<" unique stops, "<<bus->l<<" route length"<<std::endl;
+            output <<"Bus "<< request << ": "<<bus->r<<" stops on route, "<<bus->u<<" unique stops, "<<bus->real_l<<" route length, "<< bus->real_l/bus->l << " curvature"<<std::endl;
         }
         else output<<"Bus "<<request<<": not found"<<std::endl;
     }

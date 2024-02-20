@@ -17,8 +17,32 @@ void TransportCatalogue::AddRoute(const std::string& route_name, const std::vect
 }
 
 
-void TransportCatalogue::AddStop(const std::string& stop, Coordinates latlong)
+void TransportCatalogue::AddStop(const std::string& stop, Coordinates latlong, std::unordered_map<std::string_view, int> stop_lengths)
 {
+    //todo в stop_lengths названия остановок инвалидируются, нужен проход
+    std::unordered_map<std::string_view, int> stop_lengths_copy;
+       for (const auto& [key, value] : stop_lengths) {
+           stop_lengths_copy.insert({key, value});
+       }
+       
+       // Обновляем значения в stop_lengths_copy, если они есть в stop_index
+    std::unordered_map<std::string, int> updated_stop_lengths_copy;
+
+    // Обновляем значения в stop_lengths_copy, если они есть в stop_index
+    for(const auto& [key, value] : stop_lengths_copy)
+    {
+        auto it = stop_index.find(key);
+        if (it != stop_index.end()) {
+            // Используем новый ключ и сохраняем значение value
+            updated_stop_lengths_copy.emplace(it->second.value()->stop_name_, value);
+        } else {
+            // Если значение не найдено в stop_index, оставляем его без изменений
+            updated_stop_lengths_copy.emplace(key, value);
+        }
+    }
+
+    // Заменяем содержимое stop_lengths_copy на обновленные значения
+    //stop_lengths_copy = std::move(updated_stop_lengths_copy);
     std::unordered_set<std::string_view>buses;
     //std::unordered_map<std::string, std::unordered_set<std::string_view>>buses_to_stop;
     for(auto [bus, strukt]:route_index)
@@ -29,9 +53,11 @@ void TransportCatalogue::AddStop(const std::string& stop, Coordinates latlong)
         }
     }
     
+    
     //stops_.push_back({stop, latlong});
     stops_.push_back({stop, latlong, buses});
     stop_index[stops_.back().stop_name_] = &stops_.back();
+    stop_length.insert({stop, updated_stop_lengths_copy});
 }
 
 
@@ -77,11 +103,37 @@ std::optional<TransportCatalogue::Info> TransportCatalogue::GetRouteInfo(std::st
         std::set<std::string_view> unique;
         unique.insert((*it)->route_stops_.begin(), (*it)->route_stops_.end());
         int U = static_cast<int>(unique.size());
+
+        double total_length = 0.0;
+        for (int i = 1; i < (*it)->route_stops_.size(); i++)
+        {
+            const auto &current_stop = std::string((*it)->route_stops_[i]);
+            const auto &previous_stop = std::string((*it)->route_stops_[i - 1]);
+
+            // Проверяем, существует ли информация о расстоянии до следующей остановки
+            if (stop_length.find(previous_stop) != stop_length.end())
+            {
+                const auto &lengths = stop_length.at(previous_stop);
+                const auto &lengths_cicle = stop_length.at(current_stop);
+
+                // Проверяем, существует ли информация о расстоянии до текущей остановки
+                if (lengths.find(current_stop) != lengths.end())
+                {
+                    // Если информация о расстоянии есть, добавляем ее к суммарной длине маршрута
+                    total_length += lengths.at(current_stop);
+                }
+                else if (lengths_cicle.find(previous_stop) != lengths.end())
+                {
+                    total_length += lengths_cicle.at(previous_stop);
+                }
+            }
+        }
         Info info;
         info.name = name;
         info.r = R;
         info.u = U;
         info.l = L;
+        info.real_l = total_length;
         return info;
     }
 }
