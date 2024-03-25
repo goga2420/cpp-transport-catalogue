@@ -16,35 +16,11 @@ void TransportCatalogue::AddRoute(const std::string& route_name, const std::vect
     route_index[routes_.back().route_id] = &routes_.back();
 }
 
-
-void TransportCatalogue::AddStop(const std::string& stop, Coordinates latlong, std::unordered_map<std::string_view, int> stop_lengths)
+void TransportCatalogue::AddStop(const std::string& stop, geo::Coordinates latlong)
 {
-    //todo в stop_lengths названия остановок инвалидируются, нужен проход
-    std::unordered_map<std::string_view, int> stop_lengths_copy;
-       for (const auto& [key, value] : stop_lengths) {
-           stop_lengths_copy.insert({key, value});
-       }
-       
-       // Обновляем значения в stop_lengths_copy, если они есть в stop_index
-    std::unordered_map<std::string, int> updated_stop_lengths_copy;
-
-    // Обновляем значения в stop_lengths_copy, если они есть в stop_index
-    for(const auto& [key, value] : stop_lengths_copy)
-    {
-        auto it = stop_index.find(key);
-        if (it != stop_index.end()) {
-            // Используем новый ключ и сохраняем значение value
-            updated_stop_lengths_copy.emplace(it->second.value()->stop_name_, value);
-        } else {
-            // Если значение не найдено в stop_index, оставляем его без изменений
-            updated_stop_lengths_copy.emplace(key, value);
-        }
-    }
-
-    // Заменяем содержимое stop_lengths_copy на обновленные значения
-    //stop_lengths_copy = std::move(updated_stop_lengths_copy);
+    
     std::unordered_set<std::string_view>buses;
-    //std::unordered_map<std::string, std::unordered_set<std::string_view>>buses_to_stop;
+    
     for(auto [bus, strukt]:route_index)
     {
         if(std::find(strukt.value()->route_stops_.begin(), strukt.value()->route_stops_.end(), stop)!= strukt.value()->route_stops_.end())
@@ -54,14 +30,37 @@ void TransportCatalogue::AddStop(const std::string& stop, Coordinates latlong, s
     }
     
     
-    //stops_.push_back({stop, latlong});
+   
     stops_.push_back({stop, latlong, buses});
     stop_index[stops_.back().stop_name_] = &stops_.back();
+    
+}
+
+void TransportCatalogue::AddStopDistances(const std::string& stop, std::unordered_map<std::string_view, int> stop_lengths){
+    std::unordered_map<std::string_view, int> stop_lengths_copy;
+       for (const auto& [key, value] : stop_lengths) {
+           stop_lengths_copy.insert({key, value});
+       }
+       
+      
+    std::unordered_map<std::string, int> updated_stop_lengths_copy;
+
+    
+    for(const auto& [key, value] : stop_lengths_copy)
+    {
+        auto it = stop_index.find(key);
+        if (it != stop_index.end()) {
+            
+            updated_stop_lengths_copy.emplace(it->second.value()->stop_name_, value);
+        } else {
+            
+            updated_stop_lengths_copy.emplace(key, value);
+        }
+    }
     stop_length.insert({stop, updated_stop_lengths_copy});
 }
 
-
-std::optional<const TransportCatalogue::Bus*> TransportCatalogue::SearchRoute(std::string_view name) const{
+std::optional<const entity::Bus*> TransportCatalogue::SearchRoute(std::string_view name) const{
     auto it = route_index.find(name);
     if(it != route_index.end())
         return it->second;
@@ -69,7 +68,7 @@ std::optional<const TransportCatalogue::Bus*> TransportCatalogue::SearchRoute(st
 }
 
 
-std::optional<const TransportCatalogue::Stop*> TransportCatalogue::SearchStop(std::string_view name) const{
+std::optional<const entity::Stop*> TransportCatalogue::SearchStop(std::string_view name) const{
     auto it = stop_index.find(name);
     if(it != stop_index.end())
         return it->second;
@@ -77,8 +76,8 @@ std::optional<const TransportCatalogue::Stop*> TransportCatalogue::SearchStop(st
         return nullptr;
 }
 
-//std::optional<const TransportCatalogue::Bus*>
-std::optional<TransportCatalogue::Info> TransportCatalogue::GetRouteInfo(std::string_view name) const
+
+std::optional<entity::Info> TransportCatalogue::GetRouteInfo(std::string_view name) const
 {
     
     auto it = SearchRoute(name);
@@ -87,9 +86,9 @@ std::optional<TransportCatalogue::Info> TransportCatalogue::GetRouteInfo(std::st
     
     else
     {
-        //return (*it).second;
+        
         int R = 1;
-        Coordinates from, to;
+        geo::Coordinates from, to;
         double L = 0.0;
         for(int i =1; i<(*it)->route_stops_.size(); i++)
         {
@@ -128,7 +127,7 @@ std::optional<TransportCatalogue::Info> TransportCatalogue::GetRouteInfo(std::st
                 }
             }
         }
-        Info info;
+        entity::Info info;
         info.name = name;
         info.r = R;
         info.u = U;
@@ -138,20 +137,20 @@ std::optional<TransportCatalogue::Info> TransportCatalogue::GetRouteInfo(std::st
     }
 }
 
-std::optional<TransportCatalogue::BusesToStop> TransportCatalogue::GetStopBuses(std::string_view stop) const
+std::optional<entity::BusesToStop> TransportCatalogue::GetStopBuses(std::string_view stop) const
 {
     auto it = SearchStop(stop);
     if(it != nullptr)
     {
-        BusesToStop buses;
-        //std::set<std::string_view>buses;
+        entity::BusesToStop buses;
+        
         for(auto bus:(it).value()->buses_to_stop)
         {
-            //auto str = bus;
+         
             buses.buses_to_stop.insert(bus);
         }
         
-        //buses.buses_to_stop.insert(*it.value()->buses_to_stop.begin(), *it.value()->buses_to_stop.end());
+    
         return buses;
     }
     return std::nullopt;
