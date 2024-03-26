@@ -1,11 +1,3 @@
-//
-//  domain.hpp
-//  Transport_Catalogue V2
-//
-//  Created by GeorgeZh on 3/13/24.
-//
-
-
 
 #include <string>
 #include <unordered_map>
@@ -20,20 +12,20 @@ namespace entity{
 
 struct Info{
     std::string name;
-    int r;
-    int u;
+    int stop_count;
+    int unique;
     double l;
     int real_l;
 };
 
 struct BusesToStop{
-    std::set<std::string_view>buses_to_stop;
+    std::set<std::string_view> buses_to_stop;
 };
 
 struct Stop{
     std::string stop_name_;
     geo::Coordinates lanlong;
-    std::unordered_set<std::string_view>buses_to_stop;
+    std::unordered_set<std::string_view> buses_to_stop;
 };
 struct Bus{
     std::string route_id;

@@ -18,6 +18,8 @@ void TransportCatalogue::AddRoute(const std::string& route_name, const std::vect
 
 void TransportCatalogue::AddStop(const std::string& stop, geo::Coordinates latlong)
 {
+
+
     
     std::unordered_set<std::string_view>buses;
     
@@ -30,30 +32,30 @@ void TransportCatalogue::AddStop(const std::string& stop, geo::Coordinates latlo
     }
     
     
-   
+    
     stops_.push_back({stop, latlong, buses});
     stop_index[stops_.back().stop_name_] = &stops_.back();
     
 }
 
-void TransportCatalogue::AddStopDistances(const std::string& stop, std::unordered_map<std::string_view, int> stop_lengths){
+void TransportCatalogue::AddStopDistances(const std::string& stop, std::unordered_map<std::string_view, int>& stop_lengths){
     std::unordered_map<std::string_view, int> stop_lengths_copy;
        for (const auto& [key, value] : stop_lengths) {
            stop_lengths_copy.insert({key, value});
        }
        
-      
+       // Обновляем значения в stop_lengths_copy, если они есть в stop_index
     std::unordered_map<std::string, int> updated_stop_lengths_copy;
 
-    
+    // Обновляем значения в stop_lengths_copy, если они есть в stop_index
     for(const auto& [key, value] : stop_lengths_copy)
     {
         auto it = stop_index.find(key);
         if (it != stop_index.end()) {
-            
+            // Используем новый ключ и сохраняем значение value
             updated_stop_lengths_copy.emplace(it->second.value()->stop_name_, value);
         } else {
-            
+            // Если значение не найдено в stop_index, оставляем его без изменений
             updated_stop_lengths_copy.emplace(key, value);
         }
     }
@@ -76,7 +78,7 @@ std::optional<const entity::Stop*> TransportCatalogue::SearchStop(std::string_vi
         return nullptr;
 }
 
-
+//std::optional<const TransportCatalogue::Bus*>
 std::optional<entity::Info> TransportCatalogue::GetRouteInfo(std::string_view name) const
 {
     
@@ -86,7 +88,7 @@ std::optional<entity::Info> TransportCatalogue::GetRouteInfo(std::string_view na
     
     else
     {
-        
+        //return (*it).second;
         int R = 1;
         geo::Coordinates from, to;
         double L = 0.0;
@@ -129,8 +131,8 @@ std::optional<entity::Info> TransportCatalogue::GetRouteInfo(std::string_view na
         }
         entity::Info info;
         info.name = name;
-        info.r = R;
-        info.u = U;
+        info.stop_count = R;
+        info.unique = U;
         info.l = L;
         info.real_l = total_length;
         return info;
@@ -146,7 +148,7 @@ std::optional<entity::BusesToStop> TransportCatalogue::GetStopBuses(std::string_
         
         for(auto bus:(it).value()->buses_to_stop)
         {
-         
+           
             buses.buses_to_stop.insert(bus);
         }
         

@@ -7,12 +7,12 @@ bool IsZero(double value) {
     return std::abs(value) < EPSILON;
 }
 
-void FillText(RenderSettings& render_settings, const geo::Coordinates& point, svg::Text& text, const render::SphereProjector& proj, std::string bus_name) {
+void MapRenderer::FillText(RenderSettings& render_settings, const geo::Coordinates& point, svg::Text& text, const render::SphereProjector& proj, std::string bus_name) {
     text.SetPosition(proj(point)).SetOffset(svg::Point(render_settings.bus_label_offset[0], render_settings.bus_label_offset[1])).SetFontSize(render_settings.bus_label_font_size).SetFontFamily("Verdana").SetData(bus_name).SetFontWeight("bold").SetFillColor("black");
 
     }
 
-void FillStops(RenderSettings& render_settings, svg::Document& map, const render::SphereProjector& proj, std::string stop_name, geo::Coordinates point, std::vector<svg::Text>& stop) {
+void MapRenderer::FillStops(RenderSettings& render_settings, svg::Document& map, const render::SphereProjector& proj, std::string stop_name, geo::Coordinates point, std::vector<svg::Text>& stop) {
     svg::Circle circle;
     circle.SetCenter(proj(point)).SetRadius(render_settings.stop_radius).SetFillColor("white");
     map.Add(circle);
@@ -26,7 +26,7 @@ void FillStops(RenderSettings& render_settings, svg::Document& map, const render
     stop.push_back(name_stop);
 }
 
-void FillMap(std::vector<geo::Coordinates> stops, svg::Document& map, RenderSettings& render_settings, const render::SphereProjector& proj, int& number, bool is_roundtrip, std::string bus_name, std::vector<svg::Text>& bus) {
+void MapRenderer::FillMap(std::vector<geo::Coordinates> stops, svg::Document& map, RenderSettings& render_settings, const render::SphereProjector& proj, int& number, bool is_roundtrip, std::string bus_name, std::vector<svg::Text>& bus) {
     if (stops.size() == 0) {
         return;
     }
@@ -62,4 +62,41 @@ void FillMap(std::vector<geo::Coordinates> stops, svg::Document& map, RenderSett
     }
     number += 1;
 }
+
+svg::Color MapRenderer::FillColor(json::Node colors) {
+    if (colors.IsArray()) {
+        if (colors.AsArray().size() == 3) {
+            return svg::Color(svg::Rgb(colors.AsArray()[0].AsInt(), colors.AsArray()[1].AsInt(), colors.AsArray()[2].AsInt()));
+        }
+        else {
+            return svg::Color(svg::Rgba(colors.AsArray()[0].AsInt(), colors.AsArray()[1].AsInt(), colors.AsArray()[2].AsInt(), colors.AsArray()[3].AsDouble()));
+        }
+    }
+    return svg::Color(colors.AsString());
+}
+
+render::MapRenderer::RenderSettings MapRenderer::FillRenderSettings(const json::Dict& setting) {
+    render::MapRenderer::RenderSettings renderer_settings;
+    renderer_settings.width = setting.at("width").AsDouble();
+    renderer_settings.height = setting.at("height").AsDouble();
+    renderer_settings.padding = setting.at("padding").AsDouble();
+    renderer_settings.line_width = setting.at("line_width").AsDouble();
+    renderer_settings.stop_radius = setting.at("stop_radius").AsDouble();
+    renderer_settings.bus_label_font_size = setting.at("bus_label_font_size").AsInt();
+    for (const auto& elem : setting.at("bus_label_offset").AsArray()) {
+        renderer_settings.bus_label_offset.push_back(elem.AsDouble());
+    }
+    renderer_settings.stop_label_font_size = setting.at("stop_label_font_size").AsInt();
+    for (const auto& elem : setting.at("stop_label_offset").AsArray()) {
+        renderer_settings.stop_label_offset.push_back(elem.AsDouble());
+    }
+    renderer_settings.underlayer_color = FillColor(setting.at("underlayer_color"));
+    renderer_settings.underlayer_width = setting.at("underlayer_width").AsDouble();
+    for (const auto& color : setting.at("color_palette").AsArray()) {
+        renderer_settings.color_palette.emplace_back(FillColor(color));
+    }
+    return renderer_settings;
+
+}
+
 }

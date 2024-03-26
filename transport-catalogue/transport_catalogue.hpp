@@ -17,7 +17,7 @@ public:
     
     void AddRoute(const std::string& route_name, const std::vector<std::string_view>& stops);
     void AddStop(const std::string& stop, geo::Coordinates latlong);
-    void AddStopDistances(const std::string& stop, std::unordered_map<std::string_view, int> stop_lengths);
+    void AddStopDistances(const std::string& stop, std::unordered_map<std::string_view, int>& stop_lengths);
     std::optional<const entity::Bus*> SearchRoute(std::string_view name) const;
     std::optional<const entity::Stop*> SearchStop(std::string_view name) const;
     std::optional<entity::Info> GetRouteInfo(std::string_view name) const ;

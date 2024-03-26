@@ -1,7 +1,7 @@
 #include <iostream>
 #include <string>
 #include <fstream>
-#include "json_reader.hpp"
+#include "json_reader.h"
 
 
 using namespace std;
@@ -19,11 +19,12 @@ int main() {
             return 1;
         }
 
-        // Читаем содержимое файла JSON в строку
-        //std::string jsonStr((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+        
     std::ifstream in("/Users/georgijzukov/Desktop/Transport_Catalogue V2/Transport_Catalogue V2/input.json");
     std::ofstream out("/Users/georgijzukov/Desktop/Transport_Catalogue V2/Transport_Catalogue V2/out.json");
+    
     catalogue::TransportCatalogue catalogue;
-    BaseRequest(catalogue, in, out);
+    json_reader::JsonReader catalogue_with_json;
+    catalogue_with_json.BaseRequest(catalogue, in, out);
 
 }
