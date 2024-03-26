@@ -26,7 +26,7 @@ void MapRenderer::FillStops(RenderSettings& render_settings, svg::Document& map,
     stop.push_back(name_stop);
 }
 
-void MapRenderer::FillMap(std::vector<geo::Coordinates> stops, svg::Document& map, RenderSettings& render_settings, const render::SphereProjector& proj, int& number, bool is_roundtrip, std::string bus_name, std::vector<svg::Text>& bus) {
+void MapRenderer::FillMap(const std::vector<geo::Coordinates>& stops, svg::Document& map, RenderSettings& render_settings, const render::SphereProjector& proj, int& number, bool is_roundtrip, std::string bus_name, std::vector<svg::Text>& bus) {
     if (stops.size() == 0) {
         return;
     }
@@ -63,7 +63,7 @@ void MapRenderer::FillMap(std::vector<geo::Coordinates> stops, svg::Document& ma
     number += 1;
 }
 
-svg::Color MapRenderer::FillColor(json::Node colors) {
+svg::Color MapRenderer::FillColor(const json::Node& colors) {
     if (colors.IsArray()) {
         if (colors.AsArray().size() == 3) {
             return svg::Color(svg::Rgb(colors.AsArray()[0].AsInt(), colors.AsArray()[1].AsInt(), colors.AsArray()[2].AsInt()));

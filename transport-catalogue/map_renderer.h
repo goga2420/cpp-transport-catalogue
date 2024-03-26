@@ -106,10 +106,10 @@ public:
     
 public:
     void FillStops(RenderSettings& render_settings, svg::Document& map, const render::SphereProjector& proj, std::string stop_name, geo::Coordinates point, std::vector<svg::Text>& stop);
-    void FillMap(std::vector<geo::Coordinates> stops, svg::Document& map, RenderSettings& render_settings, const render::SphereProjector& proj, int& number, bool is_roundtrip, std::string bus_name, std::vector<svg::Text>& bus);
+    void FillMap(const std::vector<geo::Coordinates>& stops, svg::Document& map, RenderSettings& render_settings, const render::SphereProjector& proj, int& number, bool is_roundtrip, std::string bus_name, std::vector<svg::Text>& bus);
     void FillText(RenderSettings& render_settings, const geo::Coordinates& point, svg::Text& text, const render::SphereProjector& proj, std::string bus_name);
     
-    svg::Color FillColor(json::Node colors);
+    svg::Color FillColor(const json::Node& colors);
     RenderSettings FillRenderSettings(const json::Dict& setting);
     
 };
