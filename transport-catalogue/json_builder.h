@@ -5,16 +5,14 @@ namespace json {
 class Builder
 {
     class BaseContext;
-    class BuilderContext;
     class DictValueContext;
     class DictItemContext;
     class ArrayItemContext;
-    class ValueContext;
     
 public:
     Builder();
     DictValueContext Key(std::string key);
-    ValueContext Value(Node::Value value);
+    BaseContext Value(Node::Value value);
     DictItemContext StartDict();
     ArrayItemContext StartArray();
     BaseContext EndDict();
@@ -71,16 +69,6 @@ private:
     };
 
 
-    class ValueContext :public BaseContext {
-    public:
-        ValueContext(BaseContext base);
-        BaseContext Value(Node::Value value) = delete;
-        DictItemContext StartDict() = delete;
-        ArrayItemContext StartArray() = delete;
-        BaseContext EndArray() = delete;
-        BaseContext EndDict() = delete;
-        DictValueContext Key(std::string key) = delete;
-    };
 
 };
 }

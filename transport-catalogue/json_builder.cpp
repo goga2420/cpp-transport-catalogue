@@ -1,5 +1,4 @@
 #include "json_builder.h"
-
 namespace json {
     Builder::Builder()
     {
@@ -18,7 +17,7 @@ namespace json {
         return BaseContext(*this);
     }
 
-    Builder::ValueContext Builder::Value(Node::Value value)
+    Builder::BaseContext Builder::Value(Node::Value value)
     {
         if (nodes_stack_.empty()) {
             throw std::logic_error("Объект уже готов");
@@ -167,9 +166,6 @@ Builder::DictItemContext Builder::DictValueContext::Value(Node::Value value)
 }
 
 Builder::DictItemContext::DictItemContext(BaseContext base):BaseContext(base){
-}
-
-Builder::ValueContext::ValueContext(BaseContext base):BaseContext(base){
 }
 
 Builder::ArrayItemContext::ArrayItemContext(BaseContext base):BaseContext(base){
