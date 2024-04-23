@@ -7,6 +7,7 @@
 #include "transport_catalogue.h"
 #include <sstream>
 #include <unordered_set>
+#include "transport_router.h"
 
 namespace json_reader{
 
@@ -27,6 +28,7 @@ public:
     
     void ApplyCommands(json::Document& commands, catalogue::TransportCatalogue& catalogue);
     
+    json::Dict PrintGraph(const json::Node& req, const graph::Router<double>& transport_router);
     
     std::vector<geo::Coordinates> GetVectorOfCoordinates(const std::vector<std::string_view> stops, const catalogue::TransportCatalogue& catalogue);
     
@@ -35,6 +37,9 @@ public:
     void ApplyRenderSettings(json::Document& commands, const catalogue::TransportCatalogue& catalogue, std::ostream& out);
     
     void ParseAndPrintStat(json::Document& commands, const catalogue::TransportCatalogue& catalogue, std::ostream& output);
+    
+private:
+    TransportRouter transport_router_;
 };
 
 }

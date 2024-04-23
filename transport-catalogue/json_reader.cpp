@@ -30,7 +30,7 @@ std::unordered_map < std::string_view, int> JsonReader::ParseStopDistances(const
 
 std::vector<std::string_view> JsonReader::ParseRoute(const json::Array& route, const bool& is_roundtrip) {
     std::vector<std::string_view> result;
-    for (const auto& stop : route) {
+    for (const json::Node& stop : route) {
         result.push_back(stop.AsString());
     }
     if (!is_roundtrip) {
@@ -48,14 +48,22 @@ void JsonReader::ApplyCommands(json::Document& commands, catalogue::TransportCat
     }
     std::unordered_map<std::string, json::Dict> stop_distances;
     json::Array buses;
+    //json::Array buses_graph;
     json::Array stops;
-    const auto& com = commands.GetRoot().AsDict().at("base_requests").AsArray();
+    json::Array stops_graph;
+    const json::Array& com = commands.GetRoot().AsDict().at("base_requests").AsArray();
+    //const auto& visio = commands.GetRoot().AsMap().at("render_settings");
     
-    
-    for (const auto& info : com) {
+    for (const json::Node& info : com) {
         if (info.AsDict().at("type").AsString() == "Stop") {
             stops.push_back(info);
+            stops_graph.push_back(info.AsDict().at("name").AsString());
             stop_distances[info.AsDict().at("name").AsString()] = info.AsDict().at("road_distances").AsDict();
+            //            std::unordered_map<std::string_view, int> stops_length;
+            //            for(auto& [key, value]:info.AsMap().at("road_distances").AsMap()){
+            //                stops_length.insert({key, value.AsDouble()});
+            //                //std::cout<<std::endl;
+            //            }
             catalogue.AddStop(info.AsDict().at("name").AsString(), geo::Coordinates{ info.AsDict().at("latitude").AsDouble(), info.AsDict().at("longitude").AsDouble() });
         }
         else if (info.AsDict().at("type").AsString() == "Bus") {
@@ -68,22 +76,83 @@ void JsonReader::ApplyCommands(json::Document& commands, catalogue::TransportCat
         catalogue.AddStopDistances(stop.first, stops);
     }
     
-    for (const auto& bus : buses) {
+    for (const json::Node& bus : buses) {
         catalogue.AddRoute(bus.AsDict().at("name").AsString(), ParseRoute(bus.AsDict().at("stops").AsArray(), bus.AsDict().at("is_roundtrip").AsBool()));
     }
     
-    for (const auto& stop : stops) {
+    for (const json::Node& stop : stops) {
         
         catalogue.AddStop(stop.AsDict().at("name").AsString(), geo::Coordinates{ stop.AsDict().at("latitude").AsDouble(), stop.AsDict().at("longitude").AsDouble() });
     }
     
+    const json::Dict& rooting_settings = commands.GetRoot().AsDict().at("routing_settings").AsDict();
+    
+    transport_router_.SetVelocity(rooting_settings.at("bus_velocity").AsDouble());
+    transport_router_.SetWaitTime(rooting_settings.at("bus_wait_time").AsInt());
+//
+    transport_router_.BuildGraph(catalogue, stops_graph);
+    
 }
 
+json::Dict JsonReader::PrintGraph(const json::Node& req, const graph::Router<double>& transport_router)
+{
+    using namespace std::literals;
+    std::string from = req.AsDict().at("from").AsString();
+    std::string to = req.AsDict().at("to").AsString();
+    std::unordered_map<std::string, std::pair<size_t, size_t>> stops_edges = transport_router_.GetStopEdges();
+    if (from == to) {
+        return json::Builder{}.StartDict().Key("total_time").Value(0).Key("request_id").Value(req.AsDict().at("id").AsInt()).Key("items").StartArray().EndArray().EndDict().Build().AsDict();
+    }
+    else {
+        const std::optional<graph::Router<double>::RouteInfo> info = transport_router.BuildRoute(stops_edges.at(from).first, stops_edges.at(to).first);
+        if (info.has_value()) {
+            const std::vector<graph::EdgeId>& elem = info.value().edges;
+            json::Array rout_arr;
+
+            double total_time = 0.0;
+            for (const graph::EdgeId& el : elem) {
+                json::Dict item_map;
+                const graph::Edge<double> edge = transport_router_.GetGraph().GetEdge(el);
+                if (edge.bus.empty()) {
+                    item_map["type"] = "Wait"s;
+                    item_map["stop_name"] = edge.stop;
+                    item_map["time"] = edge.weight;
+
+                    rout_arr.push_back(item_map);
+                }
+                else {
+                    item_map["type"] = "Bus"s;
+                    item_map["bus"] = edge.bus;
+                    item_map["span_count"] = edge.span_count;
+                    item_map["time"] = edge.weight;
+                    rout_arr.push_back(item_map);
+                }
+                total_time += edge.weight;
+            }
+            return json::Builder{}
+                .StartDict()
+                .Key("total_time").Value(total_time)
+                .Key("request_id").Value(req.AsDict().at("id").AsInt()).Key("items").Value(rout_arr)
+                .EndDict()
+                .Build()
+                .AsDict();
+        }
+        
+    }
+    return
+        json::Builder{}
+        .StartDict()
+        .Key("request_id").Value(req.AsDict().at("id").AsInt())
+        .Key("error_message").Value("not found")
+        .EndDict()
+        .Build()
+        .AsDict();
+}
 
 
 json::Array JsonReader::MakeArray(std::set<std::string_view>& original) {
     json::Array result;
-    for (auto& element : original) {
+    for (const std::string_view& element : original) {
         result.push_back(std::string(element));
     }
     return result;
@@ -92,7 +161,7 @@ json::Array JsonReader::MakeArray(std::set<std::string_view>& original) {
 
 std::vector<geo::Coordinates> JsonReader::GetVectorOfCoordinates(const std::vector<std::string_view> stops, const catalogue::TransportCatalogue& catalogue) {
     std::vector<geo::Coordinates> result;
-    for (const auto& stop : stops) {
+    for (const std::string_view& stop : stops) {
         result.push_back(geo::Coordinates{catalogue.SearchStop(stop).value()->lanlong.lat,catalogue.SearchStop(stop).value()->lanlong.lng });
     }
     return result;
@@ -102,7 +171,7 @@ std::vector<geo::Coordinates> JsonReader::GetVectorOfCoordinates(const std::vect
 
 std::vector<geo::Coordinates> JsonReader::AllCoordinates(std::set<std::string> stops,const  catalogue::TransportCatalogue& catalogue) {
     std::vector<geo::Coordinates> result;
-    for (const auto& stop : stops) {
+    for (const std::string& stop : stops) {
         if(catalogue.GetStopBuses(stop) != std::nullopt && !catalogue.GetStopBuses(stop).value().buses_to_stop.empty())
             result.push_back(geo::Coordinates{ catalogue.SearchStop(stop).value()->lanlong.lat, catalogue.SearchStop(stop).value()->lanlong.lng });
     }
@@ -150,13 +219,15 @@ void JsonReader::ApplyRenderSettings(json::Document& commands,const catalogue::T
 
 
 void JsonReader::ParseAndPrintStat(json::Document& commands, const catalogue::TransportCatalogue& catalogue, std::ostream& output) {
+    graph::DirectedWeightedGraph<double> graph = transport_router_.GetGraph();
+    graph::Router<double> transport_router(graph);
     using namespace std::literals;
     if (!commands.GetRoot().IsDict()) {
         return;
     }
-    const auto& requests = commands.GetRoot().AsDict().at("stat_requests").AsArray();
+    const json::Array& requests = commands.GetRoot().AsDict().at("stat_requests").AsArray();
     json::Array all_stat;
-    for (const auto& req : requests) {
+    for (const json::Node& req : requests) {
         if (req.AsDict().at("type").AsString() == "Bus") {
             if (catalogue.SearchRoute(req.AsDict().at("name").AsString()) == nullptr) {
 
@@ -187,6 +258,9 @@ void JsonReader::ParseAndPrintStat(json::Document& commands, const catalogue::Tr
             ApplyRenderSettings(commands,catalogue, map);
 
             all_stat.push_back(json::Builder{}.StartDict().Key("map"s).Value(map.str()).Key("request_id"s).Value(req.AsDict().at("id").AsInt()).EndDict().Build());
+        }
+        else if (req.AsDict().at("type").AsString() == "Route") {
+            all_stat.push_back(PrintGraph(req, transport_router));
         }
     }
     json::Print(json::Document{ json::Node{all_stat} }, output);
