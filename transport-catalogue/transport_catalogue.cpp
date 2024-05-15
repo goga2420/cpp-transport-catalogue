@@ -184,3 +184,7 @@ std::optional<entity::BusesToStop> TransportCatalogue::GetStopBuses(std::string_
     return std::nullopt;
 }
 }
+
+std::deque<catalogue::entity::Stop> catalogue::TransportCatalogue::GetStops(){
+    return stops_;
+}

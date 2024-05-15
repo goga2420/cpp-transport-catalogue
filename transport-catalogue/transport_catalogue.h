@@ -25,6 +25,7 @@ public:
     std::optional<const entity::Stop*> SearchStop(std::string_view name) const;
     std::optional<entity::Info> GetRouteInfo(std::string_view name) const ;
     std::optional<entity::BusesToStop> GetStopBuses(std::string_view stop) const;
+    std::deque<entity::Stop> GetStops();
 private:
     
     std::deque<entity::Bus> routes_;

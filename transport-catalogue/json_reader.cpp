@@ -48,22 +48,13 @@ void JsonReader::ApplyCommands(json::Document& commands, catalogue::TransportCat
     }
     std::unordered_map<std::string, json::Dict> stop_distances;
     json::Array buses;
-    //json::Array buses_graph;
     json::Array stops;
-    json::Array stops_graph;
     const json::Array& com = commands.GetRoot().AsDict().at("base_requests").AsArray();
-    //const auto& visio = commands.GetRoot().AsMap().at("render_settings");
     
     for (const json::Node& info : com) {
         if (info.AsDict().at("type").AsString() == "Stop") {
             stops.push_back(info);
-            stops_graph.push_back(info.AsDict().at("name").AsString());
             stop_distances[info.AsDict().at("name").AsString()] = info.AsDict().at("road_distances").AsDict();
-            //            std::unordered_map<std::string_view, int> stops_length;
-            //            for(auto& [key, value]:info.AsMap().at("road_distances").AsMap()){
-            //                stops_length.insert({key, value.AsDouble()});
-            //                //std::cout<<std::endl;
-            //            }
             catalogue.AddStop(info.AsDict().at("name").AsString(), geo::Coordinates{ info.AsDict().at("latitude").AsDouble(), info.AsDict().at("longitude").AsDouble() });
         }
         else if (info.AsDict().at("type").AsString() == "Bus") {
@@ -89,8 +80,8 @@ void JsonReader::ApplyCommands(json::Document& commands, catalogue::TransportCat
     
     transport_router_.SetVelocity(rooting_settings.at("bus_velocity").AsDouble());
     transport_router_.SetWaitTime(rooting_settings.at("bus_wait_time").AsInt());
-//
-    transport_router_.BuildGraph(catalogue, stops_graph);
+    transport_router_.SetCatalogue(catalogue);
+    transport_router_.BuildGraph();
     
 }
 
