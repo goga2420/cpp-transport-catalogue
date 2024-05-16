@@ -13,17 +13,17 @@ void TransportRouter::SetCatalogue(catalogue::TransportCatalogue transport_catal
     transport_catalogue_ = transport_catalogue;
 }
 
-graph::DirectedWeightedGraph<double> TransportRouter::FillStopsEdges(std::deque<catalogue::entity::Stop> stops, graph::DirectedWeightedGraph<double> graph){
+
+void TransportRouter::FillStopsEdges(std::deque<catalogue::entity::Stop>& stops, graph::DirectedWeightedGraph<double>& graph){
     size_t k = 0;
     for (catalogue::entity::Stop stop : stops) {
         stop_edge[stop.stop_name_] = {k,k + 1};
         graph.AddEdge(graph::Edge<double>{ k, k + 1, bus_specs.bus_wait_*1.0, "", stop.stop_name_, 0  });
         k += 2;
     }
-    return graph;
 }
 
-graph::DirectedWeightedGraph<double> TransportRouter::FillGraphBuses(graph::DirectedWeightedGraph<double> graph){
+void TransportRouter::FillGraphBuses(graph::DirectedWeightedGraph<double>& graph){
     
     for (const catalogue::entity::Bus& bus : transport_catalogue_.GetAllRoutes()) {
         for (int i = 0; i < bus.route_stops_.size() - 1; ++i) {
@@ -41,25 +41,26 @@ graph::DirectedWeightedGraph<double> TransportRouter::FillGraphBuses(graph::Dire
             }
         }
     }
-    return graph;
 }
 
 void TransportRouter::BuildGraph(){
 
     auto stops_ = transport_catalogue_.GetStops();
     graph::DirectedWeightedGraph<double> graph(stops_.size()*2);
-
-    graph_ = FillGraphBuses(FillStopsEdges(stops_, graph));
+    FillStopsEdges(stops_, graph);
+    FillGraphBuses(graph);
+    graph_ = graph;
+    router_ = std::make_unique<graph::Router<double>>(graph_);
 }
 
-graph::DirectedWeightedGraph<double>& TransportRouter::GetGraph(){
-    return graph_;
-}
-
-std::unordered_map<std::string, std::pair<size_t, size_t>> TransportRouter::GetStopEdges(){
-    return stop_edge;
-}
-graph::Router<double>* TransportRouter::GetRouter()
-{
-        return router_.get();
+std::vector<graph::Edge<double>> TransportRouter::GetBestRoad(std::string from, std::string to) {
+    const auto route_parts = router_.get()->BuildRoute(stop_edge.at(from).first, stop_edge.at(to).first);
+    std::vector<graph::Edge<double>> best_route;
+    if (route_parts.has_value()) {
+        const std::vector<graph::EdgeId>& elem = route_parts.value().edges;
+        for (const graph::EdgeId& el : elem) {
+            best_route.push_back(graph_.GetEdge(el));
+        }
+    }
+    return best_route;
 }

@@ -2,6 +2,7 @@
 #include "router.h"
 #include "json.h"
 #include "transport_catalogue.h"
+#include <memory>
 
 
 class TransportRouter{
@@ -9,24 +10,22 @@ public:
     
     TransportRouter() = default;
     
-    TransportRouter(int bus_wait, double velocity, catalogue::TransportCatalogue transport_catalogue){
+    explicit TransportRouter(int bus_wait, double velocity, catalogue::TransportCatalogue& transport_catalogue){
         bus_specs.bus_wait_ = bus_wait;
         bus_specs.velocity_ = velocity;
         transport_catalogue_ = transport_catalogue;
+        BuildGraph();
     }
     
     void SetWaitTime(int wait_time);
     void SetVelocity(double velocity);
     void SetCatalogue(catalogue::TransportCatalogue transport_catalogue);
     void BuildGraph();
-    graph::DirectedWeightedGraph<double>& GetGraph();
-    std::unordered_map<std::string, std::pair<size_t, size_t>> GetStopEdges();
-    graph::Router<double>* GetRouter();
+    std::vector<graph::Edge<double>> GetBestRoad(std::string from, std::string to);
     
 private:
-    
-    graph::DirectedWeightedGraph<double> FillStopsEdges(std::deque<catalogue::entity::Stop> stops, graph::DirectedWeightedGraph<double> graph);
-    graph::DirectedWeightedGraph<double> FillGraphBuses(graph::DirectedWeightedGraph<double> graph);
+    void FillStopsEdges(std::deque<catalogue::entity::Stop>& stops, graph::DirectedWeightedGraph<double>& graph);
+    void FillGraphBuses(graph::DirectedWeightedGraph<double>& graph);
     
     struct BusSpecs{
         int bus_wait_ = 0;

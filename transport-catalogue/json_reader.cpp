@@ -7,6 +7,8 @@ json::Document JsonReader::LoadJSON(const std::string& s) {
     return json::Load(strm);
 }
 
+JsonReader::JsonReader(catalogue::TransportCatalogue& catalogue):transport_catalogue_(catalogue){}
+
 void JsonReader::BaseRequest(catalogue::TransportCatalogue& catalogue, std::istream& input, std::ostream& output) {
     json::Document command = json::Load(input);
     ApplyCommands(command, catalogue);
@@ -75,35 +77,23 @@ void JsonReader::ApplyCommands(json::Document& commands, catalogue::TransportCat
         
         catalogue.AddStop(stop.AsDict().at("name").AsString(), geo::Coordinates{ stop.AsDict().at("latitude").AsDouble(), stop.AsDict().at("longitude").AsDouble() });
     }
-    
-    const json::Dict& rooting_settings = commands.GetRoot().AsDict().at("routing_settings").AsDict();
-    
-    transport_router_.SetVelocity(rooting_settings.at("bus_velocity").AsDouble());
-    transport_router_.SetWaitTime(rooting_settings.at("bus_wait_time").AsInt());
-    transport_router_.SetCatalogue(catalogue);
-    transport_router_.BuildGraph();
-    
 }
 
-json::Dict JsonReader::PrintGraph(const json::Node& req, const graph::Router<double>& transport_router)
+json::Dict JsonReader::PrintGraph(const json::Node& req, TransportRouter& router)
 {
     using namespace std::literals;
     std::string from = req.AsDict().at("from").AsString();
     std::string to = req.AsDict().at("to").AsString();
-    std::unordered_map<std::string, std::pair<size_t, size_t>> stops_edges = transport_router_.GetStopEdges();
     if (from == to) {
         return json::Builder{}.StartDict().Key("total_time").Value(0).Key("request_id").Value(req.AsDict().at("id").AsInt()).Key("items").StartArray().EndArray().EndDict().Build().AsDict();
     }
     else {
-        const std::optional<graph::Router<double>::RouteInfo> info = transport_router.BuildRoute(stops_edges.at(from).first, stops_edges.at(to).first);
-        if (info.has_value()) {
-            const std::vector<graph::EdgeId>& elem = info.value().edges;
+        std::vector<graph::Edge<double>> road = router.GetBestRoad(from, to);
+        if (!road.empty()) {
             json::Array rout_arr;
-
             double total_time = 0.0;
-            for (const graph::EdgeId& el : elem) {
+            for (const graph::Edge<double>& edge : road) {
                 json::Dict item_map;
-                const graph::Edge<double> edge = transport_router_.GetGraph().GetEdge(el);
                 if (edge.bus.empty()) {
                     item_map["type"] = "Wait"s;
                     item_map["stop_name"] = edge.stop;
@@ -128,7 +118,6 @@ json::Dict JsonReader::PrintGraph(const json::Node& req, const graph::Router<dou
                 .Build()
                 .AsDict();
         }
-        
     }
     return
         json::Builder{}
@@ -210,12 +199,12 @@ void JsonReader::ApplyRenderSettings(json::Document& commands,const catalogue::T
 
 
 void JsonReader::ParseAndPrintStat(json::Document& commands, const catalogue::TransportCatalogue& catalogue, std::ostream& output) {
-    graph::DirectedWeightedGraph<double> graph = transport_router_.GetGraph();
-    graph::Router<double> transport_router(graph);
     using namespace std::literals;
     if (!commands.GetRoot().IsDict()) {
         return;
     }
+    const auto& rooting_settings = commands.GetRoot().AsDict().at("routing_settings").AsDict();
+        TransportRouter transport_router(rooting_settings.at("bus_wait_time").AsInt(), rooting_settings.at("bus_velocity").AsDouble(), transport_catalogue_);
     const json::Array& requests = commands.GetRoot().AsDict().at("stat_requests").AsArray();
     json::Array all_stat;
     for (const json::Node& req : requests) {
@@ -251,6 +240,7 @@ void JsonReader::ParseAndPrintStat(json::Document& commands, const catalogue::Tr
             all_stat.push_back(json::Builder{}.StartDict().Key("map"s).Value(map.str()).Key("request_id"s).Value(req.AsDict().at("id").AsInt()).EndDict().Build());
         }
         else if (req.AsDict().at("type").AsString() == "Route") {
+            
             all_stat.push_back(PrintGraph(req, transport_router));
         }
     }

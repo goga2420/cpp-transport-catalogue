@@ -15,7 +15,8 @@ class JsonReader{
 public:
     
     json::Document LoadJSON(const std::string& s);
-    
+    JsonReader(catalogue::TransportCatalogue& catalogue);
+
     void BaseRequest(catalogue::TransportCatalogue& catalogue, std::istream& input, std::ostream& output);
     
     std::string Print(const json::Node& node);
@@ -28,7 +29,7 @@ public:
     
     void ApplyCommands(json::Document& commands, catalogue::TransportCatalogue& catalogue);
     
-    json::Dict PrintGraph(const json::Node& req, const graph::Router<double>& transport_router);
+    json::Dict PrintGraph(const json::Node& req, TransportRouter& router);
     
     std::vector<geo::Coordinates> GetVectorOfCoordinates(const std::vector<std::string_view> stops, const catalogue::TransportCatalogue& catalogue);
     
@@ -40,6 +41,7 @@ public:
     
 private:
     TransportRouter transport_router_;
+    catalogue::TransportCatalogue& transport_catalogue_;
 };
 
 }
